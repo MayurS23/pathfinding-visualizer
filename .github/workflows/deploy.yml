@@ -1,0 +1,71 @@
+# ============================================================
+#  GitHub Actions — Build WASM + Deploy to GitHub Pages
+#  Triggers on every push to main branch.
+#  Sets up Emscripten, compiles C++ → WASM, deploys web/ folder.
+# ============================================================
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Compile C++ → WASM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Verify emcc
+        run: emcc --version
+
+      - name: Compile C++ to WebAssembly
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh release
+
+      - name: List build output
+        run: |
+          echo "=== web/ contents ==="
+          ls -lah web/
+          echo ""
+          echo "=== WASM size ==="
+          wc -c web/pathfinder.wasm
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

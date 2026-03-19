@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PathOS — Pathfinding Algorithm Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & VARIABLES ─────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:        #05070f;
+  --bg2:       #090c18;
+  --bg3:       #0d1120;
+  --panel:     #0a0e1c;
+  --border:    rgba(80,100,220,0.18);
+  --border2:   rgba(80,100,220,0.08);
+  --border3:   rgba(80,100,220,0.04);
+  --cyan:      #00e5ff;
+  --cyan-dim:  rgba(0,229,255,0.10);
+  --cyan-glow: rgba(0,229,255,0.35);
+  --violet:    #8b78ff;
+  --violet-dim:rgba(139,120,255,0.10);
+  --green:     #00ffaa;
+  --green-dim: rgba(0,255,170,0.10);
+  --orange:    #ffaa44;
+  --orange-dim:rgba(255,170,68,0.10);
+  --red:       #ff4d6d;
+  --red-dim:   rgba(255,77,109,0.10);
+  --text:      #dde4f8;
+  --text-dim:  #7a88b0;
+  --text-muted:#3d4a6a;
+  --mono:      'JetBrains Mono',monospace;
+  --display:   'Syne',sans-serif;
+  /* cell colours */
+  --c-empty:   #090c18;
+  --c-wall:    #141a30;
+  --c-visited: rgba(80,100,220,0.28);
+  --c-path:    #00e5ff;
+  --c-start:   #00ffaa;
+  --c-end:     #ff4d6d;
+  --c-weight:  #ffaa44;
+}
+html{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  height:100vh;
+  overflow:hidden;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* ─── SCANLINES ─────────────────────────────────────────── */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);
+}
+
+/* ─── APP SHELL ─────────────────────────────────────────── */
+.app{display:grid;grid-template-rows:56px 1fr;height:100vh}
+
+/* ─── HEADER ────────────────────────────────────────────── */
+header{
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 20px;gap:16px;
+  flex-shrink:0;
+}
+.logo{
+  font-family:var(--display);font-size:17px;font-weight:800;
+  color:var(--cyan);letter-spacing:-0.3px;
+  text-shadow:0 0 24px var(--cyan-glow);
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.logo-ver{font-family:var(--mono);font-size:10px;font-weight:300;color:var(--text-muted);margin-top:1px}
+.hdiv{width:1px;height:24px;background:var(--border);flex-shrink:0}
+
+/* algorithm tabs */
+.atabs{display:flex;gap:3px}
+.atab{
+  padding:5px 13px;border-radius:5px;
+  border:1px solid transparent;background:transparent;
+  color:var(--text-muted);font-family:var(--mono);font-size:11px;
+  font-weight:500;cursor:pointer;transition:all .15s;letter-spacing:.5px;
+  white-space:nowrap;
+}
+.atab:hover{border-color:var(--border);color:var(--text-dim);background:var(--bg3)}
+.atab.on[data-a="0"]{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(0,229,255,.12)}
+.atab.on[data-a="1"]{background:var(--violet-dim);border-color:var(--violet);color:var(--violet);box-shadow:0 0 14px rgba(139,120,255,.12)}
+.atab.on[data-a="2"]{background:var(--green-dim);border-color:var(--green);color:var(--green);box-shadow:0 0 14px rgba(0,255,170,.12)}
+.atab.on[data-a="3"]{background:var(--orange-dim);border-color:var(--orange);color:var(--orange);box-shadow:0 0 14px rgba(255,170,68,.12)}
+
+/* header right buttons */
+.hright{margin-left:auto;display:flex;align-items:center;gap:6px}
+.hbtn{
+  padding:5px 12px;border-radius:5px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--text-dim);font-family:var(--mono);font-size:11px;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.hbtn:hover{background:var(--bg3);color:var(--text)}
+.hbtn.maze:hover{border-color:var(--violet);color:var(--violet);background:var(--violet-dim)}
+.hbtn.clear:hover{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.hbtn.reset:hover{border-color:rgba(80,100,220,.5);color:#aab4ff;background:rgba(80,100,220,.08)}
+.run-btn{
+  padding:6px 18px;border-radius:5px;
+  border:1px solid var(--cyan);background:var(--cyan-dim);
+  color:var(--cyan);font-family:var(--mono);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;letter-spacing:1.2px;text-transform:uppercase;
+  box-shadow:0 0 14px rgba(0,229,255,.08);
+}
+.run-btn:hover:not(:disabled){background:rgba(0,229,255,.18);box-shadow:0 0 28px rgba(0,229,255,.22);transform:translateY(-1px)}
+.run-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+/* ─── MAIN THREE-COL LAYOUT ─────────────────────────────── */
+.main{display:grid;grid-template-columns:200px 1fr 204px;height:calc(100vh - 56px);overflow:hidden}
+
+/* ─── SIDE PANELS ───────────────────────────────────────── */
+.panel{
+  background:var(--panel);padding:16px 14px;
+  display:flex;flex-direction:column;gap:18px;
+  overflow-y:auto;overflow-x:hidden;
+}
+.lp{border-right:1px solid var(--border)}
+.rp{border-left:1px solid var(--border)}
+.psec{display:flex;flex-direction:column;gap:8px}
+.plabel{
+  font-size:8.5px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--text-muted);
+  padding-bottom:5px;border-bottom:1px solid var(--border2);
+}
+
+/* mode buttons */
+.mbtn{
+  padding:7px 10px;border-radius:5px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--text-dim);font-family:var(--mono);font-size:10.5px;
+  cursor:pointer;transition:all .15s;text-align:left;
+  display:flex;align-items:center;gap:7px;
+}
+.mbtn .ico{font-size:13px;flex-shrink:0}
+.mbtn:hover{background:var(--bg3);border-color:rgba(80,100,220,.3);color:var(--text)}
+.mbtn.on{background:rgba(80,100,220,.1);border-color:rgba(80,100,220,.4);color:#aab4ff}
+
+/* size buttons */
+.sbtnrow{display:flex;gap:3px;flex-wrap:wrap}
+.sbtn{
+  flex:1;padding:5px 2px;border-radius:4px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--text-muted);font-family:var(--mono);font-size:9.5px;
+  cursor:pointer;transition:all .15s;text-align:center;white-space:nowrap;
+}
+.sbtn:hover{background:var(--bg3);color:var(--text-dim)}
+.sbtn.on{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim)}
+
+/* speed */
+.sp-wrap{display:flex;flex-direction:column;gap:6px}
+.sp-row{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim)}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:3px;
+  border-radius:2px;background:var(--border);outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:var(--cyan);cursor:pointer;box-shadow:0 0 8px var(--cyan-glow);
+}
+
+/* stats */
+.stat{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:5px 0;border-bottom:1px solid var(--border3);font-size:10px;
+}
+.stat:last-child{border-bottom:none}
+.slb{color:var(--text-muted)}
+.sval{font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;transition:color .3s}
+.sval.c{color:var(--cyan)}.sval.g{color:var(--green)}
+.sval.o{color:var(--orange)}.sval.v{color:var(--violet)}
+
+/* algo info card */
+.acard{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:7px;padding:12px;font-size:10.5px;line-height:1.65;
+  color:var(--text-dim);
+}
+.acard h4{font-family:var(--display);font-size:13px;color:var(--text);margin-bottom:6px;font-weight:700}
+.tag{
+  display:inline-block;padding:2px 6px;border-radius:3px;
+  font-size:9.5px;font-weight:700;margin:0 3px 4px 0;
+}
+.tag.ok{background:rgba(0,255,170,.12);color:var(--green)}
+.tag.no{background:rgba(255,77,109,.12);color:var(--red)}
+.tag.wt{background:rgba(255,170,68,.12);color:var(--orange)}
+.tag.uw{background:rgba(80,100,220,.12);color:#aab4ff}
+.cplx{margin-top:7px;font-size:9.5px;color:var(--text-muted);font-style:italic}
+
+/* legend */
+.legend{display:flex;flex-direction:column;gap:5px}
+.lrow{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--text-dim)}
+.ldot{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+.ldot.s{background:var(--c-start)}
+.ldot.e{background:var(--c-end)}
+.ldot.w{background:#1e2640;border:1px solid rgba(80,100,220,.3)}
+.ldot.v{background:rgba(80,100,220,.45)}
+.ldot.p{background:var(--c-path)}
+.ldot.wt{background:var(--c-weight)}
+
+/* compare results */
+.cmp-result{font-size:10.5px;line-height:1.8}
+.cmp-item{padding:7px 0;border-bottom:1px solid var(--border2)}
+.cmp-item:last-child{border-bottom:none}
+.cmp-name{font-weight:700;margin-bottom:2px}
+.cmp-data{color:var(--text-muted)}
+
+.cbtn{
+  width:100%;padding:8px;border-radius:5px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--text-dim);font-family:var(--mono);font-size:10px;
+  cursor:pointer;transition:all .15s;text-align:center;
+}
+.cbtn:hover{border-color:var(--violet);color:var(--violet);background:var(--violet-dim)}
+
+/* ─── GRID AREA ─────────────────────────────────────────── */
+.garea{
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);position:relative;overflow:hidden;
+}
+
+/* ambient glow behind canvas */
+.garea::before{
+  content:'';position:absolute;
+  width:60%;height:60%;
+  background:radial-gradient(ellipse,rgba(0,229,255,.03) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+/* status pill */
+.status{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:20px;padding:4px 14px;
+  font-size:10.5px;color:var(--text-dim);white-space:nowrap;z-index:5;
+  display:flex;align-items:center;gap:7px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+  transition:border-color .3s;
+}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);flex-shrink:0;transition:all .3s}
+.sdot.run{background:var(--cyan);box-shadow:0 0 8px var(--cyan-glow);animation:pulse 1s infinite}
+.sdot.ok {background:var(--green);box-shadow:0 0 8px rgba(0,255,170,.4)}
+.sdot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* keyboard hint */
+.kbhint{
+  position:absolute;top:14px;right:14px;
+  font-size:9.5px;color:var(--text-muted);
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:5px;padding:4px 9px;
+  display:flex;gap:8px;
+}
+.kbhint kbd{
+  display:inline-block;padding:1px 5px;
+  border:1px solid var(--border);border-radius:3px;
+  font-family:var(--mono);font-size:9px;color:var(--text-dim);
+}
+
+#gc{
+  border:1px solid var(--border);border-radius:6px;
+  cursor:crosshair;display:block;
+  box-shadow:0 0 0 1px rgba(0,229,255,.04), 0 24px 64px rgba(0,0,0,.6);
+  transition:box-shadow .3s;
+  image-rendering:pixelated;
+}
+#gc:hover{box-shadow:0 0 0 1px rgba(0,229,255,.09), 0 24px 64px rgba(0,0,0,.6)}
+
+/* progress */
+.prog{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:var(--panel);border:1px solid var(--border);border-radius:20px;
+  padding:7px 14px;display:none;align-items:center;gap:10px;
+  font-size:10px;color:var(--text-muted);white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+.prog.on{display:flex}
+.pbar{flex:1;height:2px;background:var(--border);border-radius:2px;overflow:hidden;min-width:120px}
+.pfill{height:100%;background:var(--cyan);border-radius:2px;width:0%;transition:width .08s;box-shadow:0 0 6px var(--cyan-glow)}
+
+/* toast */
+.toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:7px;padding:10px 14px;font-size:11px;color:var(--text);
+  z-index:10000;transform:translateY(60px);opacity:0;
+  transition:all .28s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:260px;
+}
+.toast.on{transform:translateY(0);opacity:1}
+.toast.ok{border-color:rgba(0,255,170,.4)}
+.toast.err{border-color:rgba(255,77,109,.4)}
+
+/* compare mode banner */
+.cmpbanner{
+  display:none;position:absolute;top:14px;right:110px;
+  background:var(--violet-dim);border:1px solid var(--violet);
+  border-radius:5px;padding:4px 10px;font-size:10px;color:var(--violet);font-weight:700;
+}
+.cmpbanner.on{display:block}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    ⬡ PathOS <span class="logo-ver">v2.1</span>
+  </div>
+  <div class="hdiv"></div>
+
+  <div class="atabs">
+    <button class="atab on" data-a="0">BFS</button>
+    <button class="atab"    data-a="1">DFS</button>
+    <button class="atab"    data-a="2">Dijkstra</button>
+    <button class="atab"    data-a="3">A*</button>
+  </div>
+
+  <div class="hright">
+    <button class="hbtn maze"  id="bMaze">⬡ Maze</button>
+    <button class="hbtn reset" id="bReset">↺ Reset</button>
+    <button class="hbtn clear" id="bClear">✕ Clear</button>
+    <div class="hdiv"></div>
+    <button class="run-btn" id="bRun">▶ RUN</button>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═════════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="panel lp">
+
+    <div class="psec">
+      <div class="plabel">Draw Mode</div>
+      <button class="mbtn on" data-m="wall">  <span class="ico">▪</span>Wall</button>
+      <button class="mbtn"    data-m="start"> <span class="ico">◉</span>Start Node</button>
+      <button class="mbtn"    data-m="end">   <span class="ico">◎</span>End Node</button>
+      <button class="mbtn"    data-m="weight"><span class="ico">◈</span>Weight ×5</button>
+      <button class="mbtn"    data-m="erase"> <span class="ico">⌫</span>Erase</button>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">Grid Size</div>
+      <div class="sbtnrow">
+        <button class="sbtn" data-s="15,28">15×28</button>
+        <button class="sbtn on" data-s="20,40">20×40</button>
+      </div>
+      <div class="sbtnrow">
+        <button class="sbtn" data-s="25,50">25×50</button>
+        <button class="sbtn" data-s="30,60">30×60</button>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">Animation Speed</div>
+      <div class="sp-wrap">
+        <div class="sp-row"><span>Slow</span><span id="spLabel">30ms</span><span>Fast</span></div>
+        <input type="range" id="spSlider" min="1" max="100" value="60">
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">Legend</div>
+      <div class="legend">
+        <div class="lrow"><div class="ldot s"></div>Start node</div>
+        <div class="lrow"><div class="ldot e"></div>End node</div>
+        <div class="lrow"><div class="ldot w"></div>Wall / obstacle</div>
+        <div class="lrow"><div class="ldot v"></div>Explored node</div>
+        <div class="lrow"><div class="ldot p"></div>Shortest path</div>
+        <div class="lrow"><div class="ldot wt"></div>Weighted (×5)</div>
+      </div>
+    </div>
+
+    <div class="psec" style="margin-top:auto">
+      <div class="plabel">Keyboard</div>
+      <div style="font-size:9.5px;color:var(--text-muted);line-height:2">
+        <kbd style="display:inline;padding:1px 5px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim)">Enter</kbd> Run &nbsp;
+        <kbd style="display:inline;padding:1px 5px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim)">R</kbd> Reset<br>
+        <kbd style="display:inline;padding:1px 5px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim)">C</kbd> Clear &nbsp;
+        <kbd style="display:inline;padding:1px 5px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim)">M</kbd> Maze<br>
+        <kbd style="display:inline;padding:1px 5px;border:1px solid var(--border);border-radius:3px;color:var(--text-dim)">1-4</kbd> Algorithm
+      </div>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="garea">
+    <div class="status">
+      <div class="sdot" id="sdot"></div>
+      <span id="stext">Click to draw walls — press RUN to visualize</span>
+    </div>
+    <div class="cmpbanner" id="cmpBanner">⚡ COMPARE MODE</div>
+    <canvas id="gc"></canvas>
+    <div class="prog" id="prog">
+      <span id="pLabel">Exploring</span>
+      <div class="pbar"><div class="pfill" id="pfill"></div></div>
+      <span id="pPct">0%</span>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel rp">
+
+    <div class="psec">
+      <div class="plabel">Live Stats</div>
+      <div class="stat"><span class="slb">Nodes Visited</span><span class="sval c" id="stV">—</span></div>
+      <div class="stat"><span class="slb">Path Length</span>  <span class="sval g" id="stP">—</span></div>
+      <div class="stat"><span class="slb">Path Cost</span>    <span class="sval o" id="stC">—</span></div>
+      <div class="stat"><span class="slb">Exec Time</span>    <span class="sval v" id="stT">—</span></div>
+      <div class="stat"><span class="slb">Efficiency</span>   <span class="sval"  id="stE">—</span></div>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">Algorithm</div>
+      <div class="acard" id="acard">
+        <h4>Breadth-First Search</h4>
+        <div><span class="tag ok">Shortest Path ✓</span><span class="tag uw">Unweighted</span></div>
+        <p style="margin-top:7px">Explores all neighbors level by level. Guarantees the shortest path on unweighted grids.</p>
+        <p class="cplx">O(V+E) time · O(V) space</p>
+      </div>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">Compare All</div>
+      <div style="font-size:10px;color:var(--text-muted);line-height:1.6;margin-bottom:4px">
+        Run all 4 algorithms and compare visited nodes, path length, and time.
+      </div>
+      <button class="cbtn" id="bCompare">⚡ Compare All Algorithms</button>
+    </div>
+
+    <div class="psec">
+      <div class="plabel">Results</div>
+      <div id="cmpOut" style="display:none" class="cmp-result"></div>
+      <div id="cmpEmpty" style="font-size:10px;color:var(--text-muted)">Run compare to see side-by-side results.</div>
+    </div>
+
+  </div>
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════════
+   PathOS — Complete Pathfinding Visualizer
+   JavaScript engine (identical logic to C++ — activates WASM
+   automatically when pathfinder.js is present in the same dir)
+════════════════════════════════════════════════════════════ */
+
+// ── Constants ─────────────────────────────────────────────
+const N = { EMPTY:0, WALL:1, START:2, END:3, WEIGHT:4 };
+const S = { EMPTY:0, VISITED:1, PATH:2 };
+
+const META = [
+  { name:'BFS',      full:'Breadth-First Search',
+    tags:['ok:Shortest Path ✓','uw:Unweighted'],
+    desc:'Explores all neighbors level by level. Guarantees the shortest path on unweighted grids.',
+    cplx:'O(V+E) time · O(V) space', color:'#00e5ff' },
+  { name:'DFS',      full:'Depth-First Search',
+    tags:['no:No Guarantee ✗','uw:Unweighted'],
+    desc:'Explores as far as possible before backtracking. Does NOT guarantee the shortest path.',
+    cplx:'O(V+E) time · O(V) space', color:'#8b78ff' },
+  { name:'Dijkstra', full:"Dijkstra's Algorithm",
+    tags:['ok:Shortest Path ✓','wt:Weighted'],
+    desc:'Uses a min-heap priority queue to always expand the cheapest known node. Optimal for weighted grids.',
+    cplx:'O((V+E)logV) time · O(V) space', color:'#00ffaa' },
+  { name:'A*',       full:'A* Search',
+    tags:['ok:Shortest Path ✓','wt:Weighted + Heuristic'],
+    desc:'Combines Dijkstra\'s cost-so-far with a Manhattan distance heuristic. Fastest in practice.',
+    cplx:'O(E logV) time · O(V) space', color:'#ffaa44' },
+];
+
+/* ════════════════════════════════════════════════════════════
+   MIN HEAP — used by Dijkstra + A*
+════════════════════════════════════════════════════════════ */
+class Heap {
+  constructor(){ this._h=[] }
+  get size(){ return this._h.length }
+  push(x){ this._h.push(x); this._up(this._h.length-1) }
+  pop(){
+    const top=this._h[0], last=this._h.pop();
+    if(this._h.length){ this._h[0]=last; this._dn(0) }
+    return top;
+  }
+  _up(i){
+    while(i>0){
+      const p=(i-1)>>1;
+      if(this._h[p][0]<=this._h[i][0]) break;
+      [this._h[p],this._h[i]]=[this._h[i],this._h[p]]; i=p;
+    }
+  }
+  _dn(i){
+    const n=this._h.length;
+    for(;;){
+      let s=i,l=2*i+1,r=2*i+2;
+      if(l<n&&this._h[l][0]<this._h[s][0]) s=l;
+      if(r<n&&this._h[r][0]<this._h[s][0]) s=r;
+      if(s===i) break;
+      [this._h[s],this._h[i]]=[this._h[i],this._h[s]]; i=s;
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ALGORITHMS
+   Each returns { visited:[[r,c],...], path:[[r,c],...], found, cost }
+════════════════════════════════════════════════════════════ */
+const ALGO = {
+  bfs(g, sr, sc, er, ec){
+    const vis=[], path=[];
+    const dist=new Int32Array(g.rows*g.cols).fill(-1);
+    const par =new Int32Array(g.rows*g.cols).fill(-1);
+    const DR=[-1,1,0,0], DC=[0,0,-1,1];
+    const q=[[sr,sc]]; dist[g.idx(sr,sc)]=0;
+    let head=0, found=false;
+    while(head<q.length&&!found){
+      const [r,c]=q[head++]; vis.push([r,c]);
+      if(r===er&&c===ec){found=true;break}
+      for(let d=0;d<4;d++){
+        const nr=r+DR[d],nc=c+DC[d];
+        if(!g.walkable(nr,nc)) continue;
+        const ni=g.idx(nr,nc);
+        if(dist[ni]!==-1) continue;
+        dist[ni]=dist[g.idx(r,c)]+1; par[ni]=g.idx(r,c);
+        q.push([nr,nc]);
+      }
+    }
+    if(found){
+      let ci=g.idx(er,ec);
+      while(ci!==-1){path.unshift([Math.floor(ci/g.cols),ci%g.cols]);ci=par[ci]}
+    }
+    return {vis,path,found,cost:path.length};
+  },
+
+  dfs(g, sr, sc, er, ec){
+    const vis=[], path=[];
+    const seen=new Uint8Array(g.rows*g.cols);
+    const par =new Int32Array(g.rows*g.cols).fill(-1);
+    const DR=[-1,1,0,0], DC=[0,0,-1,1];
+    const stk=[[sr,sc]]; seen[g.idx(sr,sc)]=1;
+    let found=false;
+    while(stk.length&&!found){
+      const [r,c]=stk.pop(); vis.push([r,c]);
+      if(r===er&&c===ec){found=true;break}
+      for(let d=3;d>=0;d--){
+        const nr=r+DR[d],nc=c+DC[d];
+        if(!g.walkable(nr,nc)) continue;
+        const ni=g.idx(nr,nc);
+        if(seen[ni]) continue;
+        seen[ni]=1; par[ni]=g.idx(r,c); stk.push([nr,nc]);
+      }
+    }
+    if(found){
+      let ci=g.idx(er,ec);
+      while(ci!==-1){path.unshift([Math.floor(ci/g.cols),ci%g.cols]);ci=par[ci]}
+    }
+    return {vis,path,found,cost:path.length};
+  },
+
+  dijkstra(g, sr, sc, er, ec){
+    const vis=[], path=[];
+    const dist=new Float32Array(g.rows*g.cols).fill(Infinity);
+    const par =new Int32Array(g.rows*g.cols).fill(-1);
+    const done=new Uint8Array(g.rows*g.cols);
+    const DR=[-1,1,0,0], DC=[0,0,-1,1];
+    const h=new Heap(); dist[g.idx(sr,sc)]=0; h.push([0,sr,sc]);
+    let found=false,cost=0;
+    while(h.size&&!found){
+      const [d,r,c]=h.pop(); const i=g.idx(r,c);
+      if(done[i]) continue; done[i]=1; vis.push([r,c]);
+      if(r===er&&c===ec){found=true;break}
+      for(let dir=0;dir<4;dir++){
+        const nr=r+DR[dir],nc=c+DC[dir];
+        if(!g.walkable(nr,nc)) continue;
+        const ni=g.idx(nr,nc); if(done[ni]) continue;
+        const nd=d+g.wts[ni];
+        if(nd<dist[ni]){dist[ni]=nd;par[ni]=i;h.push([nd,nr,nc])}
+      }
+    }
+    if(found){
+      let ci=g.idx(er,ec);
+      while(ci!==-1){path.unshift([Math.floor(ci/g.cols),ci%g.cols]);cost+=g.wts[ci];ci=par[ci]}
+    }
+    return {vis,path,found,cost};
+  },
+
+  astar(g, sr, sc, er, ec){
+    const vis=[], path=[];
+    const gv  =new Float32Array(g.rows*g.cols).fill(Infinity);
+    const par =new Int32Array(g.rows*g.cols).fill(-1);
+    const done=new Uint8Array(g.rows*g.cols);
+    const DR=[-1,1,0,0], DC=[0,0,-1,1];
+    const H=(r,c)=>Math.abs(r-er)+Math.abs(c-ec);
+    const heap=new Heap(); gv[g.idx(sr,sc)]=0; heap.push([H(sr,sc),0,sr,sc]);
+    let found=false,cost=0;
+    while(heap.size&&!found){
+      const [f,gn,r,c]=heap.pop(); const i=g.idx(r,c);
+      if(done[i]) continue; done[i]=1; vis.push([r,c]);
+      if(r===er&&c===ec){found=true;break}
+      for(let dir=0;dir<4;dir++){
+        const nr=r+DR[dir],nc=c+DC[dir];
+        if(!g.walkable(nr,nc)) continue;
+        const ni=g.idx(nr,nc); if(done[ni]) continue;
+        const ng=gn+g.wts[ni];
+        if(ng<gv[ni]){gv[ni]=ng;par[ni]=i;heap.push([ng+H(nr,nc),ng,nr,nc])}
+      }
+    }
+    if(found){
+      let ci=g.idx(er,ec);
+      while(ci!==-1){path.unshift([Math.floor(ci/g.cols),ci%g.cols]);cost+=g.wts[ci];ci=par[ci]}
+    }
+    return {vis,path,found,cost};
+  }
+};
+
+/* ════════════════════════════════════════════════════════════
+   GRID MODEL
+════════════════════════════════════════════════════════════ */
+class Grid {
+  constructor(rows, cols){
+    this.rows=rows; this.cols=cols;
+    this.cells=new Uint8Array(rows*cols);
+    this.wts  =new Uint8Array(rows*cols).fill(1);
+    this.state=new Uint8Array(rows*cols);
+    // Default start/end positions
+    this.sr=Math.floor(rows*0.5); this.sc=Math.floor(cols*0.15);
+    this.er=Math.floor(rows*0.5); this.ec=Math.floor(cols*0.85);
+    this.cells[this.idx(this.sr,this.sc)]=N.START;
+    this.cells[this.idx(this.er,this.ec)]=N.END;
+  }
+  idx(r,c){ return r*this.cols+c }
+  inB(r,c){ return r>=0&&r<this.rows&&c>=0&&c<this.cols }
+  walkable(r,c){ return this.inB(r,c)&&this.cells[this.idx(r,c)]!==N.WALL }
+  setCell(r,c,type){
+    if(!this.inB(r,c)) return;
+    if(type===N.START){ this.cells[this.idx(this.sr,this.sc)]=N.EMPTY; this.sr=r;this.sc=c }
+    if(type===N.END)  { this.cells[this.idx(this.er,this.ec)]=N.EMPTY; this.er=r;this.ec=c }
+    this.cells[this.idx(r,c)]=type;
+    if(type===N.WEIGHT) this.wts[this.idx(r,c)]=5;
+    if(type===N.EMPTY)  this.wts[this.idx(r,c)]=1;
+  }
+  clearState(){ this.state.fill(S.EMPTY) }
+  clearWalls(){
+    this.cells.fill(N.EMPTY); this.wts.fill(1);
+    this.cells[this.idx(this.sr,this.sc)]=N.START;
+    this.cells[this.idx(this.er,this.ec)]=N.END;
+    this.clearState();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDERER — canvas pixel grid
+════════════════════════════════════════════════════════════ */
+class Renderer {
+  constructor(canvas, grid){
+    this.cv=canvas; this.cx=canvas.getContext('2d'); this.g=grid;
+    this.resize();
+  }
+  resize(){
+    const p=this.cv.parentElement;
+    const maxW=p.clientWidth-40, maxH=p.clientHeight-80;
+    const cw=Math.floor(maxW/this.g.cols), ch=Math.floor(maxH/this.g.rows);
+    this.cs=Math.max(8,Math.min(cw,ch,36));
+    this.cv.width=this.cs*this.g.cols;
+    this.cv.height=this.cs*this.g.rows;
+  }
+  hitTest(e){
+    const r=this.cv.getBoundingClientRect();
+    const x=(e.clientX??(e.touches[0].clientX))-r.left;
+    const y=(e.clientY??(e.touches[0].clientY))-r.top;
+    const sx=this.cv.width/r.width, sy=this.cv.height/r.height;
+    return { r:Math.floor(y*sy/this.cs), c:Math.floor(x*sx/this.cs) };
+  }
+  drawAll(){
+    for(let r=0;r<this.g.rows;r++)
+      for(let c=0;c<this.g.cols;c++) this.drawCell(r,c);
+  }
+  drawCell(r,c){
+    const {cx,g,cs}=this; const i=g.idx(r,c);
+    const type=g.cells[i], state=g.state[i];
+    const x=c*cs, y=r*cs, pad=cs>12?1:0;
+
+    // Base colour
+    let bg='#090c18';
+    if(type===N.WALL)  bg='#141a30';
+    if(type===N.WEIGHT&&state===S.EMPTY) bg='rgba(255,170,68,0.2)';
+    if(state===S.VISITED) bg=this._visitCol();
+    if(state===S.PATH)    bg='rgba(0,229,255,0.9)';
+    if(type===N.START)    bg='#00ffaa';
+    if(type===N.END)      bg='#ff4d6d';
+
+    cx.fillStyle=bg;
+    cx.fillRect(x+pad,y+pad,cs-pad*2,cs-pad*2);
+
+    // Grid lines
+    if(cs>=10){
+      cx.strokeStyle='rgba(80,100,220,0.07)';
+      cx.lineWidth=0.5;
+      cx.strokeRect(x+pad,y+pad,cs-pad*2,cs-pad*2);
+    }
+
+    // Labels
+    if(cs>=16){
+      if(type===N.START||type===N.END){
+        cx.fillStyle=type===N.START?'#001a0d':'#fff';
+        cx.font=`bold ${Math.floor(cs*.52)}px 'JetBrains Mono',monospace`;
+        cx.textAlign='center'; cx.textBaseline='middle';
+        cx.fillText(type===N.START?'S':'E', x+cs/2, y+cs/2);
+      }
+      if(type===N.WEIGHT&&state!==S.PATH){
+        cx.fillStyle='#ffaa44';
+        cx.font=`bold ${Math.floor(cs*.44)}px 'JetBrains Mono',monospace`;
+        cx.textAlign='center'; cx.textBaseline='middle';
+        cx.fillText('5', x+cs/2, y+cs/2);
+      }
+    }
+
+    // Path centre dot
+    if(state===S.PATH&&type!==N.START&&type!==N.END){
+      cx.fillStyle='rgba(0,229,255,0.35)';
+      const s=Math.max(2,cs*.28);
+      cx.fillRect(x+cs/2-s/2,y+cs/2-s/2,s,s);
+    }
+  }
+  _visitCol(){
+    const cols=['rgba(80,100,220,0.3)','rgba(139,120,255,0.3)',
+                'rgba(0,255,170,0.22)','rgba(255,170,68,0.22)'];
+    return cols[APP?APP.algo:0];
+  }
+  mark(r,c,st){
+    const i=this.g.idx(r,c);
+    if(this.g.cells[i]===N.START||this.g.cells[i]===N.END) return;
+    this.g.state[i]=st; this.drawCell(r,c);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MAZE — Recursive Division
+════════════════════════════════════════════════════════════ */
+class Maze {
+  constructor(grid){ this.g=grid }
+  generate(){
+    const g=this.g;
+    for(let i=0;i<g.rows*g.cols;i++){
+      if(g.cells[i]!==N.START&&g.cells[i]!==N.END){ g.cells[i]=N.EMPTY; g.wts[i]=1 }
+    }
+    this._div(0,0,g.rows,g.cols,g.cols>g.rows?'H':'V');
+    g.cells[g.idx(g.sr,g.sc)]=N.START;
+    g.cells[g.idx(g.er,g.ec)]=N.END;
+  }
+  _div(r,c,h,w,ori){
+    if(h<3||w<3) return;
+    const H=ori==='H';
+    const wr=r+(H?this._r(1,h-2,2):0);
+    const wc=c+(H?0:this._r(1,w-2,2));
+    const pr=wr+(H?0:this._r(0,h-1,2));
+    const pc=wc+(H?this._r(0,w-1,2):0);
+    const len=H?w:h;
+    for(let i=0;i<len;i++){
+      const tr=wr+(H?0:i), tc=wc+(H?i:0);
+      if(tr===pr&&tc===pc) continue;
+      if(!this.g.inB(tr,tc)) continue;
+      const idx=this.g.idx(tr,tc);
+      if(this.g.cells[idx]===N.START||this.g.cells[idx]===N.END) continue;
+      this.g.cells[idx]=N.WALL;
+    }
+    if(H){
+      this._div(r,c,wr-r,w,this._ori(wr-r,w));
+      this._div(wr+1,c,r+h-wr-1,w,this._ori(r+h-wr-1,w));
+    } else {
+      this._div(r,c,h,wc-c,this._ori(h,wc-c));
+      this._div(r,wc+1,h,c+w-wc-1,this._ori(h,c+w-wc-1));
+    }
+  }
+  _ori(h,w){ return w>h?'H':'V' }
+  _r(mn,mx,step=1){
+    const range=Math.floor((mx-mn)/step)+1;
+    return mn+Math.floor(Math.random()*range)*step;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ANIMATOR
+════════════════════════════════════════════════════════════ */
+class Animator {
+  constructor(ren){ this.ren=ren; this.running=false; this._t=null }
+  stop(){ this.running=false; if(this._t){clearTimeout(this._t); this._t=null} }
+  async animate(vis, path, ms, onProg, onDone){
+    this.running=true;
+    for(let i=0;i<vis.length;i++){
+      if(!this.running) return;
+      this.ren.mark(vis[i][0],vis[i][1],S.VISITED);
+      onProg(i+1,vis.length);
+      if(ms>1) await this._delay(ms);
+      else if(i%10===0) await this._frame();
+    }
+    if(!this.running) return;
+    await this._delay(100);
+    for(let i=0;i<path.length;i++){
+      if(!this.running) return;
+      this.ren.mark(path[i][0],path[i][1],S.PATH);
+      await this._delay(Math.max(18,ms*1.8));
+    }
+    if(this.running) onDone();
+  }
+  _delay(ms){ return new Promise(res=>{ this._t=setTimeout(res,ms) }) }
+  _frame(){ return new Promise(res=>requestAnimationFrame(res)) }
+}
+
+/* ════════════════════════════════════════════════════════════
+   APP — main controller
+════════════════════════════════════════════════════════════ */
+let APP;
+class App {
+  constructor(){
+    this.algo=0; this.mode='wall';
+    this.down=false; this.busy=false;
+    this.rows=20; this.cols=40;
+    this.wasm=null;
+    this._build();
+    this._bind();
+    this._tryWasm();
+  }
+
+  _build(){
+    this.grid=new Grid(this.rows,this.cols);
+    this.ren=new Renderer(document.getElementById('gc'),this.grid);
+    this.anim=new Animator(this.ren);
+    this.maze=new Maze(this.grid);
+    this.ren.drawAll();
+  }
+
+  _tryWasm(){
+    if(typeof PathfinderModule==='undefined') return;
+    PathfinderModule().then(m=>{
+      this.wasm=m;
+      this._toast('⚡ WebAssembly engine active','ok');
+      this._status('WASM loaded — C++ algorithms running at native speed','ok');
+    }).catch(()=>{});
+  }
+
+  _bind(){
+    // Algo tabs
+    document.querySelectorAll('.atab').forEach(b=>b.addEventListener('click',()=>{
+      if(this.busy) return;
+      document.querySelectorAll('.atab').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); this.algo=+b.dataset.a; this._updateCard();
+    }));
+
+    // Mode buttons
+    document.querySelectorAll('.mbtn').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('.mbtn').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); this.mode=b.dataset.m;
+    }));
+
+    // Grid size
+    document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{
+      if(this.busy) return;
+      document.querySelectorAll('.sbtn').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      [this.rows,this.cols]=b.dataset.s.split(',').map(Number);
+      this.anim.stop(); this._build(); this._clearStats();
+      this._status('Grid resized — draw walls and run');
+    }));
+
+    // Canvas mouse + touch
+    const cv=document.getElementById('gc');
+    cv.addEventListener('mousedown', e=>{ this.down=true;  this._paint(e) });
+    cv.addEventListener('mousemove', e=>{ if(this.down) this._paint(e) });
+    cv.addEventListener('mouseup',   ()=>{ this.down=false });
+    cv.addEventListener('mouseleave',()=>{ this.down=false });
+    cv.addEventListener('touchstart',e=>{ e.preventDefault();this.down=true; this._paint(e)   },{passive:false});
+    cv.addEventListener('touchmove', e=>{ e.preventDefault();if(this.down)this._paint(e)       },{passive:false});
+    cv.addEventListener('touchend',  ()=>{ this.down=false });
+
+    // Buttons
+    document.getElementById('bRun').addEventListener('click',()=>this._run());
+    document.getElementById('bReset').addEventListener('click',()=>this._reset());
+    document.getElementById('bClear').addEventListener('click',()=>this._clear());
+    document.getElementById('bMaze').addEventListener('click', ()=>this._genMaze());
+    document.getElementById('bCompare').addEventListener('click',()=>this._compare());
+
+    // Speed
+    document.getElementById('spSlider').addEventListener('input',()=>{
+      const ms=this._ms();
+      document.getElementById('spLabel').textContent=ms<2?'Max':ms+'ms';
+    });
+
+    // Resize
+    window.addEventListener('resize',()=>{ this.ren.resize(); this.ren.drawAll() });
+
+    // Keyboard
+    document.addEventListener('keydown',e=>{
+      const t=e.target.tagName;
+      if(t==='INPUT'||t==='TEXTAREA') return;
+      const k=e.key;
+      if(k==='Enter'||k===' '){ e.preventDefault(); this._run() }
+      if(k==='r'||k==='R') this._reset();
+      if(k==='c'||k==='C') this._clear();
+      if(k==='m'||k==='M') this._genMaze();
+      if(['1','2','3','4'].includes(k)) document.querySelector(`.atab[data-a="${+k-1}"]`).click();
+      if(k==='w') document.querySelector('[data-m="wall"]').click();
+      if(k==='s') document.querySelector('[data-m="start"]').click();
+      if(k==='e') document.querySelector('[data-m="end"]').click();
+      if(k==='Escape'&&this.busy) this.anim.stop();
+    });
+  }
+
+  _ms(){
+    const v=+document.getElementById('spSlider').value;
+    return Math.round(Math.pow((100-v)/100,2.2)*80);
+  }
+
+  _paint(e){
+    if(this.busy) return;
+    const {r,c}=this.ren.hitTest(e);
+    if(!this.grid.inB(r,c)) return;
+    const cur=this.grid.cells[this.grid.idx(r,c)];
+    // Protect start/end unless explicitly reassigning
+    if((cur===N.START||cur===N.END)&&this.mode!=='start'&&this.mode!=='end'&&this.mode!=='erase') return;
+    const typeMap={wall:N.WALL,start:N.START,end:N.END,weight:N.WEIGHT,erase:N.EMPTY};
+    this.grid.setCell(r,c,typeMap[this.mode]);
+    this.grid.clearState(); this.ren.drawAll(); this._clearStats();
+  }
+
+  _execute(algo){
+    const g=this.grid;
+    if(this.wasm) return this._wasmRun(algo,g);
+    const fns=[ALGO.bfs,ALGO.dfs,ALGO.dijkstra,ALGO.astar];
+    return fns[algo](g,g.sr,g.sc,g.er,g.ec);
+  }
+
+  _wasmRun(algo,g){
+    const sz=g.rows*g.cols;
+    const wPtr=this.wasm._malloc(sz*4);
+    const wtPtr=this.wasm._malloc(sz*4);
+    for(let i=0;i<sz;i++){
+      this.wasm.HEAP32[(wPtr>>2)+i]=g.cells[i]===N.WALL?1:0;
+      this.wasm.HEAP32[(wtPtr>>2)+i]=g.wts[i];
+    }
+    this.wasm._init_grid(g.rows,g.cols,wPtr,wtPtr);
+    const found=this.wasm._run_algorithm(algo,g.sr,g.sc,g.er,g.ec);
+    const vPtr=this.wasm._get_visited_buffer(), vCnt=this.wasm._get_visited_count();
+    const pPtr=this.wasm._get_path_buffer(),    pLen=this.wasm._get_path_length();
+    const cost=this.wasm._get_path_cost();
+    const vis=[], path=[];
+    for(let i=0;i<vCnt;i++) vis.push([this.wasm.HEAP32[(vPtr>>2)+i*2],this.wasm.HEAP32[(vPtr>>2)+i*2+1]]);
+    for(let i=0;i<pLen;i++) path.push([this.wasm.HEAP32[(pPtr>>2)+i*2],this.wasm.HEAP32[(pPtr>>2)+i*2+1]]);
+    this.wasm._free(wPtr); this.wasm._free(wtPtr);
+    return {vis,path,found:found===1,cost};
+  }
+
+  async _run(){
+    if(this.busy) return;
+    this.busy=true; this.anim.stop();
+    this.grid.clearState(); this.ren.drawAll(); this._clearStats();
+    document.getElementById('bRun').disabled=true;
+    document.getElementById('prog').classList.add('on');
+    document.getElementById('cmpBanner').classList.remove('on');
+
+    const m=META[this.algo];
+    this._status(`Running ${m.name}…`,'run');
+    const t0=performance.now();
+    const res=this._execute(this.algo);
+    const elapsed=performance.now()-t0;
+
+    document.getElementById('stT').textContent=elapsed.toFixed(2)+'ms';
+    document.getElementById('stV').textContent=res.vis.length;
+
+    await this.anim.animate(res.vis, res.path, this._ms(),
+      (done,tot)=>{
+        const pct=Math.round(done/tot*100);
+        document.getElementById('pfill').style.width=pct+'%';
+        document.getElementById('pPct').textContent=pct+'%';
+      },
+      ()=>{
+        const ok=res.found;
+        document.getElementById('stP').textContent=ok?res.path.length:'N/A';
+        document.getElementById('stC').textContent=ok?res.cost:'N/A';
+        const eff=ok?Math.round(res.path.length/res.vis.length*100):0;
+        document.getElementById('stE').textContent=ok?eff+'%':'N/A';
+        this._status(ok?`✓ Path found — ${res.path.length} nodes, cost ${res.cost}`:
+          '✗ No path — grid is blocked', ok?'ok':'err');
+        this._toast(ok?`✓ Found in ${elapsed.toFixed(1)}ms`:'✗ No path exists',ok?'ok':'err');
+        this._done();
+      }
+    );
+    if(!this.anim.running) this._done();
+  }
+
+  _done(){
+    this.busy=false;
+    document.getElementById('bRun').disabled=false;
+    document.getElementById('prog').classList.remove('on');
+  }
+
+  _reset(){
+    this.anim.stop(); this.busy=false;
+    this.grid.clearState(); this.ren.drawAll(); this._clearStats();
+    document.getElementById('bRun').disabled=false;
+    document.getElementById('prog').classList.remove('on');
+    document.getElementById('cmpBanner').classList.remove('on');
+    this._status('Visualization reset — draw and run again');
+    document.getElementById('sdot').className='sdot';
+  }
+
+  _clear(){
+    this.anim.stop(); this.busy=false;
+    this.grid.clearWalls(); this.ren.drawAll(); this._clearStats();
+    document.getElementById('bRun').disabled=false;
+    document.getElementById('prog').classList.remove('on');
+    document.getElementById('cmpBanner').classList.remove('on');
+    this._status('Grid cleared — draw new walls and run');
+    document.getElementById('sdot').className='sdot';
+  }
+
+  _genMaze(){
+    if(this.busy) return;
+    this.anim.stop();
+    this.grid.clearState();
+    this.maze.generate();
+    this.ren.drawAll(); this._clearStats();
+    this._status('Maze generated — select an algorithm and run');
+    this._toast('⬡ Maze generated','ok');
+  }
+
+  async _compare(){
+    if(this.busy) return;
+    this.busy=true;
+    document.getElementById('bRun').disabled=true;
+    document.getElementById('cmpBanner').classList.add('on');
+    document.getElementById('cmpOut').style.display='none';
+    document.getElementById('cmpEmpty').style.display='none';
+    this._status('Running all algorithms…','run');
+
+    const g=this.grid, results=[];
+    for(let a=0;a<4;a++){
+      const t0=performance.now();
+      const r=this._execute(a);
+      results.push({...r,a,t:performance.now()-t0});
+    }
+
+    // Display results table
+    const out=document.getElementById('cmpOut');
+    out.style.display='block';
+    const COLORS=['#00e5ff','#8b78ff','#00ffaa','#ffaa44'];
+    out.innerHTML=results.map(r=>`
+      <div class="cmp-item">
+        <div class="cmp-name" style="color:${COLORS[r.a]}">${META[r.a].name}</div>
+        <div class="cmp-data">
+          Visited: ${r.vis.length} &nbsp;|&nbsp; Path: ${r.found?r.path.length:'✗'}<br>
+          Cost: ${r.found?r.cost:'—'} &nbsp;|&nbsp; Time: ${r.t.toFixed(2)}ms
+        </div>
+      </div>`).join('');
+
+    // Animate the best result — A*
+    this.grid.clearState(); this.ren.drawAll();
+    const best=results[3];
+    document.getElementById('prog').classList.add('on');
+    await this.anim.animate(best.vis, best.path, this._ms(),
+      (done,tot)=>{
+        const pct=Math.round(done/tot*100);
+        document.getElementById('pfill').style.width=pct+'%';
+        document.getElementById('pPct').textContent=pct+'%';
+      },
+      ()=>{
+        this._status('Compare complete — A* result shown on grid','ok');
+        this._done();
+        document.getElementById('cmpBanner').classList.remove('on');
+      }
+    );
+    if(!this.anim.running){this._done();document.getElementById('cmpBanner').classList.remove('on')}
+  }
+
+  _clearStats(){
+    ['stV','stP','stC','stT','stE'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('cmpOut').style.display='none';
+    document.getElementById('cmpEmpty').style.display='block';
+  }
+
+  _status(msg,state=''){
+    document.getElementById('stext').textContent=msg;
+    document.getElementById('sdot').className='sdot'+(state?' '+state:'');
+  }
+
+  _updateCard(){
+    const m=META[this.algo];
+    document.getElementById('acard').innerHTML=`
+      <h4>${m.full}</h4>
+      <div>${m.tags.map(t=>{const[cls,label]=t.split(':');return`<span class="tag ${cls}">${label}</span>`}).join('')}</div>
+      <p style="margin-top:7px">${m.desc}</p>
+      <p class="cplx">${m.cplx}</p>`;
+  }
+
+  _toast(msg,cls=''){
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.className='toast '+(cls||'');
+    requestAnimationFrame(()=>{
+      el.classList.add('on');
+      setTimeout(()=>el.classList.remove('on'),2800);
+    });
+  }
+}
+
+window.addEventListener('load',()=>{ APP=new App() });
+</script>
+</body>
+</html>
