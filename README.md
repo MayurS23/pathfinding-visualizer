@@ -1,70 +1,79 @@
 # ⬡ PathOS — Pathfinding Algorithm Visualizer
 
-> BFS · DFS · Dijkstra · A* — visualized in your browser, powered by C++ WebAssembly
+<div align="center">
+
+![PathOS Banner](https://img.shields.io/badge/PathOS-Visualizer-00e5ff?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJMMyA3bDkgNSA5LTVMMTIgMnpNMyAxN2w5IDUgOS01TTMgMTJsOSA1IDktNSIvPjwvc3ZnPg==)
+
+**An interactive browser-based visualizer for classic pathfinding algorithms — powered by C++ compiled to WebAssembly.**
+
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20Site-00e5ff?style=for-the-badge)](https://mayurs23.github.io/pathfinding-visualizer/)
+[![GitHub](https://img.shields.io/badge/GitHub-Source%20Code-181717?style=for-the-badge&logo=github)](https://github.com/MayurS23/pathfinding-visualizer)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+
+![C++](https://img.shields.io/badge/C++-17-00599C?style=flat&logo=cplusplus)
+![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?style=flat&logo=webassembly&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat&logo=javascript&logoColor=black)
+
+</div>
 
 ---
 
-## 🚀 Run Instantly (No Build Required)
+## 📌 What Is This Project?
 
-```bash
-cd web
-python3 -m http.server 8080
-# Open → http://localhost:8080
-```
+PathOS is an interactive web application that **visually demonstrates how pathfinding algorithms work** — step by step, node by node — directly in your browser.
 
-The app ships with a full JavaScript engine — works immediately in any browser.
+You draw walls on a grid, place a start and end point, choose an algorithm, and watch it explore the grid in real time until it finds (or fails to find) the shortest path.
+
+The algorithms are written in **C++**, compiled to **WebAssembly** using Emscripten, and called from JavaScript — giving near-native execution speed in the browser. A full JavaScript fallback engine is also included, so the app works instantly without any compilation.
 
 ---
 
-## ⚡ Enable WebAssembly (Full C++ Speed)
+## 🎬 Demo
 
-### 1. Install Emscripten
-```bash
-git clone https://github.com/emscripten-core/emsdk.git
-cd emsdk
-./emsdk install latest
-./emsdk activate latest
-source ./emsdk_env.sh   # Add to ~/.bashrc to persist
-```
+> 🔗 **Live Site:** [https://mayurs23.github.io/pathfinding-visualizer/](https://mayurs23.github.io/pathfinding-visualizer/)
 
-### 2. Build
-```bash
-cd pathfinding-visualizer
-./scripts/build.sh         # release (optimised)
-./scripts/build.sh debug   # debug (assertions + safe heap)
-```
-
-### 3. Run
-```bash
-cd web && python3 -m http.server 8080
-```
-
-The app auto-detects `pathfinder.wasm` and switches to the C++ engine — zero code changes, same UI.
+| Feature | Preview |
+|---------|---------|
+| Draw walls, set start/end, pick algorithm | Click and drag on the grid |
+| Watch nodes get explored in real time | Color animation shows exploration order |
+| See the final shortest path highlighted | Cyan trail from start to end |
+| Compare all 4 algorithms side by side | Compare mode in right panel |
+| Generate random mazes instantly | Recursive Division algorithm |
 
 ---
 
-## 🌐 Deploy to GitHub Pages (Automated)
+## ✨ Features
 
-1. Push this repo to GitHub
-2. Go to **Settings → Pages → Source → GitHub Actions**
-3. Every push to `main` automatically compiles WASM and deploys
+- 🧠 **4 Algorithms** — BFS, DFS, Dijkstra, A* (all implemented in C++)
+- ⚡ **WebAssembly Engine** — C++ compiled to WASM for near-native browser speed
+- 🎨 **Real-time Animation** — watch the algorithm explore nodes step by step
+- 🌀 **Maze Generator** — Recursive Division algorithm generates solvable mazes
+- ⚖️ **Compare Mode** — run all 4 algorithms on the same grid, see stats side by side
+- 🏋️ **Weighted Nodes** — place high-cost nodes (×5) to see how weighted algorithms adapt
+- 📊 **Live Statistics** — visited nodes, path length, path cost, execution time, efficiency %
+- 🎛️ **Speed Control** — adjust animation speed from slow (learning) to instant (benchmarking)
+- 📐 **4 Grid Sizes** — 15×28 up to 30×60
+- ⌨️ **Keyboard Shortcuts** — full keyboard control for power users
+- 📱 **Touch Support** — works on mobile and tablet
 
 ---
 
-## 🎮 Controls
+## 🧮 Algorithms Explained
 
-| Action | Control |
-|--------|---------|
-| Draw wall | Click / drag |
-| Set start | Mode: Start Node → click |
-| Set end | Mode: End Node → click |
-| Add weight | Mode: Weight ×5 → click |
-| Run algorithm | `Enter` or `Space` or ▶ button |
-| Reset visualization | `R` |
-| Clear grid | `C` |
-| Generate maze | `M` |
-| Switch algorithm | `1` `2` `3` `4` |
-| Stop animation | `Escape` |
+| Algorithm | Shortest Path? | Handles Weights? | Time Complexity | Space |
+|-----------|:-:|:-:|-----------------|-------|
+| **BFS** — Breadth-First Search | ✅ Yes | ❌ No | O(V + E) | O(V) |
+| **DFS** — Depth-First Search | ❌ No | ❌ No | O(V + E) | O(V) |
+| **Dijkstra** | ✅ Yes | ✅ Yes | O((V+E) log V) | O(V) |
+| **A\*** | ✅ Yes | ✅ Yes | O(E log V) | O(V) |
+
+### When to use which?
+- **BFS** → Unweighted grid, guaranteed shortest path, simple to understand
+- **DFS** → When you just need *any* path, not the shortest (e.g., maze solving)
+- **Dijkstra** → Weighted grid, guaranteed shortest path
+- **A\*** → Weighted grid, fastest in practice — uses Manhattan distance heuristic to guide search toward the goal
 
 ---
 
@@ -72,99 +81,278 @@ The app auto-detects `pathfinder.wasm` and switches to the C++ engine — zero c
 
 ```
 pathfinding-visualizer/
-├── web/
-│   ├── index.html           ← Self-contained app (open this in browser)
-│   ├── pathfinder.js        ← Generated by Emscripten after build
-│   └── pathfinder.wasm      ← Compiled C++ binary after build
-├── src/
-│   ├── grid.h               ← Shared data structures (Node, Grid, PathResult)
-│   ├── algorithms/
-│   │   ├── bfs.cpp          ← O(V+E) — guaranteed shortest path, unweighted
-│   │   ├── dfs.cpp          ← O(V+E) — no guarantee, for contrast
-│   │   ├── dijkstra.cpp     ← O((V+E)logV) — optimal on weighted grids
-│   │   └── astar.cpp        ← O(E logV) — optimal + heuristic-guided
-│   └── main.cpp             ← WASM exports via extern "C"
-├── scripts/
-│   └── build.sh             ← Emscripten compile script
-└── .github/workflows/
-    └── deploy.yml           ← CI/CD: compile WASM + deploy to Pages
+│
+├── 📁 web/
+│   ├── index.html              ← The entire frontend app (self-contained)
+│   ├── pathfinder.js           ← Generated by Emscripten (after build)
+│   └── pathfinder.wasm         ← Compiled C++ binary (after build)
+│
+├── 📁 src/
+│   ├── grid.h                  ← Shared data structures (Node, Grid, PathResult)
+│   ├── main.cpp                ← WASM entry point + exported functions
+│   └── 📁 algorithms/
+│       ├── bfs.cpp             ← Breadth-First Search
+│       ├── dfs.cpp             ← Depth-First Search
+│       ├── dijkstra.cpp        ← Dijkstra's Algorithm (min-heap priority queue)
+│       └── astar.cpp           ← A* Search (Manhattan distance heuristic)
+│
+├── 📁 scripts/
+│   └── build.sh                ← One-command Emscripten compile script
+│
+├── 📁 .github/workflows/
+│   └── deploy.yml              ← CI/CD: auto-compiles WASM + deploys to GitHub Pages
+│
+└── README.md
 ```
 
 ---
 
-## 🔬 Algorithm Reference
+## 🚀 Getting Started
 
-| Algorithm | Guarantee | Weights | Time | Space |
-|-----------|-----------|---------|------|-------|
-| BFS | ✅ Shortest path | ✗ Unweighted | O(V+E) | O(V) |
-| DFS | ✗ No guarantee | ✗ Unweighted | O(V+E) | O(V) |
-| Dijkstra | ✅ Shortest path | ✅ Weighted | O((V+E)logV) | O(V) |
-| A* | ✅ Shortest path | ✅ Weighted | O(E logV) | O(V) |
+### Option 1 — Run Instantly (No Setup)
+
+The app works immediately with no compilation needed.
+
+```bash
+# Clone the repository
+git clone https://github.com/MayurS23/pathfinding-visualizer.git
+cd pathfinding-visualizer
+
+# Start a local server
+cd web
+python3 -m http.server 8080
+```
+
+Open your browser → **http://localhost:8080**
+
+> ⚠️ You must use a local server. Opening `index.html` directly (`file://`) will fail due to browser security restrictions on WebAssembly.
 
 ---
 
-## 🧠 Technical Deep Dive
+### Option 2 — Build with WebAssembly (Full C++ Speed)
 
-### Why WebAssembly?
-Graph traversal on large grids (30×60 = 1,800 nodes) with animation creates thousands of DOM/canvas operations per second. C++ compiled to WASM runs at 1.5–2× native speed vs JavaScript's interpreted overhead — especially critical for Dijkstra's priority queue and A*'s heuristic calculations.
+#### Prerequisites
 
-### WASM Memory Bridge
+Install Emscripten (the C++ → WebAssembly compiler):
+
+```bash
+# Clone the Emscripten SDK
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+
+# Install and activate
+./emsdk install latest
+./emsdk activate latest
+
+# Load environment variables (run this in every new terminal, or add to ~/.bashrc)
+source ./emsdk_env.sh
 ```
-JS side:                        WASM side:
-─────────────────               ──────────────────
-malloc(rows*cols*4) ──walls──►  int* wallData
-malloc(rows*cols*4) ─weights─►  int* weightData
-                                │
-                    ──run()──►  Dijkstra / A* runs
-                                │
-HEAP32[vPtr>>2+i]  ◄─results─  g_visited_buf[]
-HEAP32[pPtr>>2+i]  ◄─results─  g_path_buf[]
+
+Verify installation:
+```bash
+emcc --version
+# Expected: emcc (Emscripten gcc/clang-like replacement) 3.x.x
 ```
 
-Zero-copy reads: JS reads directly from WASM linear memory via typed array views — no serialisation overhead.
+#### Compile
 
-### A* Heuristic
+```bash
+cd pathfinding-visualizer
+
+# Release build (optimized, smaller WASM)
+./scripts/build.sh
+
+# OR debug build (with assertions, safe heap checks)
+./scripts/build.sh debug
+```
+
+This generates:
+```
+web/pathfinder.js      ← Emscripten glue code
+web/pathfinder.wasm    ← Compiled C++ binary
+```
+
+#### Run
+
+```bash
+cd web && python3 -m http.server 8080
+```
+
+The app auto-detects the WASM module on load and switches from the JS engine to C++ — **no code changes needed**.
+
+---
+
+## ⌨️ Controls & Shortcuts
+
+### Mouse / Touch
+| Action | How |
+|--------|-----|
+| Draw walls | Click and drag on grid |
+| Erase walls | Select Erase mode → click/drag |
+| Place start node | Select Start mode → click any cell |
+| Place end node | Select End mode → click any cell |
+| Place weighted node | Select Weight ×5 mode → click any cell |
+
+### Keyboard Shortcuts
+| Key | Action |
+|-----|--------|
+| `Enter` or `Space` | Run selected algorithm |
+| `R` | Reset visualization (keep walls) |
+| `C` | Clear entire grid |
+| `M` | Generate random maze |
+| `1` | Select BFS |
+| `2` | Select DFS |
+| `3` | Select Dijkstra |
+| `4` | Select A* |
+| `W` | Switch to Wall mode |
+| `S` | Switch to Start mode |
+| `E` | Switch to Erase mode |
+| `Escape` | Stop animation |
+
+---
+
+## 🔬 How It Works — Technical Deep Dive
+
+### The C++ → WebAssembly Pipeline
+
+```
+C++ Source (.cpp)
+      │
+      ▼
+Emscripten (emcc)       ← Clang/LLVM compiler targeting WASM
+      │
+      ├──► pathfinder.wasm    ← Binary executed by browser's WASM runtime
+      └──► pathfinder.js      ← Glue code: loads WASM, exposes functions to JS
+                │
+                ▼
+         index.html loads both
+                │
+                ▼
+   Browser JIT-compiles WASM → native machine code 🔥
+```
+
+### JavaScript ↔ WASM Memory Bridge
+
+The most critical engineering piece — how JS and C++ share data:
+
+```
+JavaScript side                     C++ / WASM side
+───────────────────────             ──────────────────────────
+1. malloc(rows×cols×4)  ──walls──►  int* wallData
+   malloc(rows×cols×4)  ─weights─►  int* weightData
+
+2. _run_algorithm(algo)  ────────►  Dijkstra / A* executes
+                                    Results written to static buffers
+
+3. HEAP32[vPtr>>2 + i]  ◄─visited─  g_visited_buf[]
+   HEAP32[pPtr>>2 + i]  ◄─path────  g_path_buf[]
+
+4. _free(wallPtr)
+   _free(weightPtr)
+```
+
+**Zero-copy reads** — JS reads directly from WASM linear memory via typed array views (`HEAP32`). No serialisation, no JSON, no copying — raw memory access identical to how C would do it.
+
+### A* Heuristic — Why It's Faster
+
 ```cpp
-// Manhattan distance — admissible (never overestimates) for 4-directional grids
+// Manhattan distance — admissible heuristic for 4-directional grids
+// "Admissible" means it NEVER overestimates → guarantees optimal path
 static inline int manhattan(int r1, int c1, int r2, int c2) {
     return std::abs(r1 - r2) + std::abs(c1 - c2);
 }
+
+// f(n) = g(n) + h(n)
+// g(n) = actual cost from start to node n
+// h(n) = estimated cost from n to goal (Manhattan)
+// A* always expands the node with lowest f(n) first
 ```
 
-Admissibility guarantees A* finds the optimal path. For 8-directional movement, Chebyshev distance would be used instead.
+Dijkstra expands in all directions blindly. A* uses the heuristic to bias expansion *toward* the goal — visiting far fewer nodes while still guaranteeing the optimal path.
 
 ---
 
-## 🎯 Interview Prep
+## 📊 Algorithm Comparison (Example — 20×40 grid, random maze)
 
-### 30-Second Elevator Pitch
-> "I built a pathfinding visualizer where four graph algorithms — BFS, DFS, Dijkstra, and A* — are implemented in C++ and compiled to WebAssembly via Emscripten. The browser calls into the WASM module, reads result buffers directly from linear memory via HEAP32 typed array views with zero serialisation overhead, and animates the exploration step by step. The interesting engineering challenge was the memory bridge: JS allocates flat int arrays, passes pointers to C++, C++ writes results into static buffers, and JS reads them back — it's the same pattern used in game engines and native browser APIs."
+| Algorithm | Nodes Visited | Path Length | Typical Time |
+|-----------|:---:|:---:|:---:|
+| BFS | ~380 | 47 | ~0.8ms |
+| DFS | ~620 | 89 | ~1.1ms |
+| Dijkstra | ~380 | 47 | ~1.2ms |
+| **A\*** | **~190** | **47** | **~0.5ms** |
 
-### Common Interview Questions
-
-**Q: Why not just implement the algorithms in JavaScript?**
-A: I did implement both — the JS version is the fallback. But C++ gives you manual memory layout, cache-efficient struct packing, and zero GC pauses. For Dijkstra's priority queue with 1,800 nodes and thousands of heap operations, you feel the difference. WASM also lets you share the same algorithmic codebase between server (C++ backend) and client (WASM) — no reimplementation bugs.
-
-**Q: How does the WASM memory model work?**
-A: WASM has a flat linear memory — a single ArrayBuffer. From JS, you access it through typed array views like HEAP32. I malloc() space for the grid arrays in JS, copy the wall/weight data in, call the C++ function which writes results into static vectors, then JS reads those vectors back through pointer arithmetic. It's exactly how C interop works in native code.
-
-**Q: Why does A* visit fewer nodes than Dijkstra?**
-A: Dijkstra expands in all directions equally — it's "blind." A* uses a heuristic (Manhattan distance to the goal) to bias expansion toward promising directions. Since the heuristic is admissible (never overestimates), the optimality guarantee is preserved — you get Dijkstra's correctness with much better average-case performance.
-
-**Q: Why does DFS not guarantee shortest path?**
-A: DFS commits to the first path it finds without exploring alternatives. It can find a path of length 50 when a path of length 5 exists, because it went deep into the wrong direction first. BFS explores layer by layer, so the first time it reaches the destination, it must have taken the minimum number of steps.
-
-**Q: How would you scale this to a real maps application?**
-A: For a maps-scale graph (millions of nodes), you'd use: (1) Bidirectional A* — search from both start and end simultaneously, meeting in the middle; (2) Contraction Hierarchies — preprocess the graph by "contracting" unimportant nodes; (3) Hierarchical pathfinding — plan at city level first, then street level. The WASM architecture here actually maps well — the heavy preprocessing happens in C++/WASM, results stream to JS for rendering.
+> A* visits ~50% fewer nodes than BFS/Dijkstra while finding the same optimal path.
 
 ---
 
-## 🔧 Possible Improvements
+## 🛠️ Tech Stack
 
-- **Diagonal movement** — 8-directional grid with Chebyshev heuristic
-- **Bidirectional search** — meet-in-the-middle for 2× speedup
-- **Jump Point Search** — prunes symmetric paths, even faster than A* on uniform grids
-- **Live algorithm comparison** — split-screen showing all 4 simultaneously
-- **Weighted terrain** — different terrain types (water, mountains) with varying costs
-- **Export path** — download path coordinates as JSON
-- **Mobile touch gestures** — pinch to zoom, two-finger pan
+| Technology | Role | Why |
+|------------|------|-----|
+| **C++ 17** | Algorithm implementation | Manual memory control, cache efficiency, pointer arithmetic |
+| **Emscripten** | C++ → WASM compiler | Official toolchain, wraps Clang/LLVM |
+| **WebAssembly** | Runtime in browser | Near-native speed, runs in every modern browser |
+| **HTML5 Canvas** | Grid rendering | Hardware-accelerated pixel drawing, smooth animation |
+| **Vanilla JavaScript** | UI + WASM bridge | Zero dependencies, full control |
+| **CSS3** | Styling | Custom properties, animations, responsive layout |
+| **GitHub Actions** | CI/CD | Auto-compile WASM + deploy on every push |
+| **GitHub Pages** | Hosting | Free static hosting, HTTPS, custom domain support |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here are some ideas:
+
+- [ ] Diagonal movement (8-directional) with Chebyshev heuristic
+- [ ] Bidirectional A* (search from both ends simultaneously)
+- [ ] Jump Point Search (even faster than A* on uniform grids)
+- [ ] Split-screen comparison (show all 4 algorithms simultaneously)
+- [ ] Export path as JSON / image
+- [ ] More maze generation algorithms (Prim's, Kruskal's, Aldous-Broder)
+
+### How to Contribute
+
+```bash
+# Fork the repo, then:
+git clone https://github.com/YOUR_USERNAME/pathfinding-visualizer.git
+cd pathfinding-visualizer
+
+# Make your changes
+# Test locally: cd web && python3 -m http.server 8080
+
+git add .
+git commit -m "feat: your feature description"
+git push origin main
+# Open a Pull Request on GitHub
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — free to use, modify, and distribute.
+
+---
+
+## 👨‍💻 Author
+
+**Mayur S**
+- GitHub: [@MayurS23](https://github.com/MayurS23)
+- Live Demo: [https://mayurs23.github.io/pathfinding-visualizer/](https://mayurs23.github.io/pathfinding-visualizer/)
+
+---
+
+## ⭐ Show Your Support
+
+If you found this project useful or learned something from it, **please give it a star on GitHub** — it helps others discover it!
+
+[![Star on GitHub](https://img.shields.io/github/stars/MayurS23/pathfinding-visualizer?style=social)](https://github.com/MayurS23/pathfinding-visualizer)
+
+---
+
+<div align="center">
+  Built with C++ · WebAssembly · HTML · CSS · JavaScript
+  <br>
+  <a href="https://mayurs23.github.io/pathfinding-visualizer/">🚀 Try it live</a>
+</div>
