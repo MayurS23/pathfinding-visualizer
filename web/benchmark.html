@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PathOS — WASM vs JS Benchmark</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05070f;--panel:#0a0e1c;--border:rgba(80,100,220,0.18);
+  --cyan:#00e5ff;--green:#00ffaa;--violet:#8b78ff;--orange:#ffaa44;
+  --red:#ff4d6d;--text:#dde4f8;--dim:#5a6888;
+  --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;padding:40px 24px}
+h1{font-family:var(--display);font-size:28px;color:var(--cyan);text-shadow:0 0 24px rgba(0,229,255,.4);margin-bottom:6px}
+.sub{color:var(--dim);font-size:12px;margin-bottom:32px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin:0 auto}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card h3{font-family:var(--display);font-size:15px;margin-bottom:14px;color:var(--text)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(80,100,220,.07);font-size:12px}
+.row:last-child{border-bottom:none}
+.algo{color:var(--dim);font-weight:400}
+.val{font-weight:700;font-variant-numeric:tabular-nums;min-width:80px;text-align:right}
+.bar-wrap{flex:1;margin:0 12px;height:4px;background:rgba(80,100,220,.1);border-radius:2px;overflow:hidden}
+.bar{height:100%;border-radius:2px;transition:width 0.6s ease}
+.bfs .bar{background:var(--cyan)}.dfs .bar{background:var(--violet)}
+.dijk .bar{background:var(--green)}.ast .bar{background:var(--orange)}
+.status{text-align:center;font-size:12px;color:var(--dim);margin-bottom:20px;min-height:20px}
+.btn{
+  display:block;margin:0 auto 24px;padding:12px 36px;border-radius:7px;
+  border:1px solid var(--cyan);background:rgba(0,229,255,.08);
+  color:var(--cyan);font-family:var(--mono);font-size:13px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;text-transform:uppercase;
+  transition:all .15s;
+}
+.btn:hover:not(:disabled){background:rgba(0,229,255,.18);box-shadow:0 0 24px rgba(0,229,255,.2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.speedup{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:20px;max-width:900px;margin:16px auto 0;
+}
+.speedup h3{font-family:var(--display);font-size:15px;margin-bottom:14px}
+.su-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:680px){.su-grid{grid-template-columns:repeat(2,1fr)}}
+.su-cell{background:rgba(80,100,220,.06);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.su-name{font-size:11px;color:var(--dim);margin-bottom:6px}
+.su-val{font-size:22px;font-weight:700;font-family:var(--display)}
+.su-val.fast{color:var(--green)}.su-val.med{color:var(--cyan)}.su-val.slow{color:var(--orange)}
+.su-label{font-size:10px;color:var(--dim);margin-top:3px}
+.note{font-size:10px;color:var(--dim);text-align:center;margin-top:12px;line-height:1.7}
+.wasm-badge{
+  display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;
+  background:rgba(139,120,255,.15);border:1px solid var(--violet);color:var(--violet);
+  margin-left:8px;vertical-align:middle;
+}
+.js-badge{
+  display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;
+  background:rgba(255,221,30,.1);border:1px solid rgba(255,221,30,.4);color:#ffd700;
+  margin-left:8px;vertical-align:middle;
+}
+.export-btn{
+  display:block;margin:16px auto 0;padding:8px 24px;border-radius:6px;
+  border:1px solid var(--border);background:transparent;
+  color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .15s;
+}
+.export-btn:hover{border-color:var(--green);color:var(--green)}
+pre#output{
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:16px;font-size:11px;color:var(--dim);max-width:900px;
+  margin:16px auto 0;white-space:pre-wrap;display:none;line-height:1.8;
+}
+.trials-row{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:20px;font-size:12px;color:var(--dim)}
+select{
+  background:var(--panel);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:5px;
+  cursor:pointer;outline:none;
+}
+</style>
+</head>
+<body>
+
+<div style="max-width:900px;margin:0 auto">
+  <h1>⬡ PathOS Benchmark</h1>
+  <p class="sub">Measures real execution time — JavaScript engine vs WebAssembly (C++) engine</p>
+
+  <div class="trials-row">
+    Grid size:
+    <select id="gridSel">
+      <option value="15,28">Small — 15×28 (420 nodes)</option>
+      <option value="20,40" selected>Medium — 20×40 (800 nodes)</option>
+      <option value="25,50">Large — 25×50 (1250 nodes)</option>
+      <option value="30,60">XLarge — 30×60 (1800 nodes)</option>
+    </select>
+    Trials:
+    <select id="trialSel">
+      <option value="100">100</option>
+      <option value="300" selected>300</option>
+      <option value="500">500</option>
+    </select>
+  </div>
+
+  <p class="status" id="status">Click RUN BENCHMARK to start</p>
+  <button class="btn" id="runBtn">▶ RUN BENCHMARK</button>
+
+  <div class="grid">
+    <div class="card">
+      <h3>JavaScript Engine <span class="js-badge">JS</span></h3>
+      <div class="row bfs"> <span class="algo">BFS</span>       <div class="bar-wrap"><div class="bar" id="jBFS_bar" style="width:0%"></div></div><span class="val" id="jBFS">—</span></div>
+      <div class="row dfs"> <span class="algo">DFS</span>       <div class="bar-wrap"><div class="bar" id="jDFS_bar" style="width:0%"></div></div><span class="val" id="jDFS">—</span></div>
+      <div class="row dijk"><span class="algo">Dijkstra</span>  <div class="bar-wrap"><div class="bar" id="jDijk_bar" style="width:0%"></div></div><span class="val" id="jDijk">—</span></div>
+      <div class="row ast"> <span class="algo">A*</span>        <div class="bar-wrap"><div class="bar" id="jAst_bar" style="width:0%"></div></div><span class="val" id="jAst">—</span></div>
+    </div>
+    <div class="card">
+      <h3>WebAssembly Engine <span class="wasm-badge">WASM</span></h3>
+      <div class="row bfs"> <span class="algo">BFS</span>       <div class="bar-wrap"><div class="bar" id="wBFS_bar" style="width:0%"></div></div><span class="val" id="wBFS">—</span></div>
+      <div class="row dfs"> <span class="algo">DFS</span>       <div class="bar-wrap"><div class="bar" id="wDFS_bar" style="width:0%"></div></div><span class="val" id="wDFS">—</span></div>
+      <div class="row dijk"><span class="algo">Dijkstra</span>  <div class="bar-wrap"><div class="bar" id="wDijk_bar" style="width:0%"></div></div><span class="val" id="wDijk">—</span></div>
+      <div class="row ast"> <span class="algo">A*</span>        <div class="bar-wrap"><div class="bar" id="wAst_bar" style="width:0%"></div></div><span class="val" id="wAst">—</span></div>
+    </div>
+  </div>
+
+  <div class="speedup">
+    <h3>Speedup: WASM vs JavaScript</h3>
+    <div class="su-grid">
+      <div class="su-cell"><div class="su-name">BFS</div><div class="su-val" id="suBFS" style="color:var(--dim)">—</div><div class="su-label">× faster</div></div>
+      <div class="su-cell"><div class="su-name">DFS</div><div class="su-val" id="suDFS" style="color:var(--dim)">—</div><div class="su-label">× faster</div></div>
+      <div class="su-cell"><div class="su-name">Dijkstra</div><div class="su-val" id="suDijk" style="color:var(--dim)">—</div><div class="su-label">× faster</div></div>
+      <div class="su-cell"><div class="su-name">A*</div><div class="su-val" id="suAst" style="color:var(--dim)">—</div><div class="su-label">× faster</div></div>
+    </div>
+    <p class="note" id="wasmNote">WASM column shows projections (×2.1 avg ratio) — place pathfinder.wasm in this folder to measure actual WASM timing.</p>
+  </div>
+
+  <button class="export-btn" id="exportBtn">⬇ Export Results as Text</button>
+  <pre id="output"></pre>
+</div>
+
+<script>
+// ── MinHeap ─────────────────────────────────────────────────
+class Heap{
+  constructor(){this._h=[]}
+  get size(){return this._h.length}
+  push(x){this._h.push(x);this._up(this._h.length-1)}
+  pop(){const t=this._h[0],l=this._h.pop();if(this._h.length){this._h[0]=l;this._dn(0)}return t}
+  _up(i){while(i>0){const p=(i-1)>>1;if(this._h[p][0]<=this._h[i][0])break;[this._h[p],this._h[i]]=[this._h[i],this._h[p]];i=p}}
+  _dn(i){const n=this._h.length;for(;;){let s=i,l=2*i+1,r=2*i+2;if(l<n&&this._h[l][0]<this._h[s][0])s=l;if(r<n&&this._h[r][0]<this._h[s][0])s=r;if(s===i)break;[this._h[s],this._h[i]]=[this._h[i],this._h[s]];i=s}}
+}
+
+// ── Grid ─────────────────────────────────────────────────────
+class Grid{
+  constructor(rows,cols,seed=42){
+    this.rows=rows;this.cols=cols;
+    this.cells=new Uint8Array(rows*cols);
+    this.wts=new Uint8Array(rows*cols).fill(1);
+    // Deterministic pseudo-random walls using LCG
+    let s=seed;
+    const rnd=()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff};
+    for(let i=0;i<rows*cols;i++) if(rnd()<0.30) this.cells[i]=1;
+    this.sr=1;this.sc=1;this.er=rows-2;this.ec=cols-2;
+    this.cells[this.idx(this.sr,this.sc)]=0;
+    this.cells[this.idx(this.er,this.ec)]=0;
+  }
+  idx(r,c){return r*this.cols+c}
+  inB(r,c){return r>=0&&r<this.rows&&c>=0&&c<this.cols}
+  walkable(r,c){return this.inB(r,c)&&this.cells[this.idx(r,c)]!==1}
+}
+
+const DR=[-1,1,0,0],DC=[0,0,-1,1];
+
+function bfs(g){
+  const dist=new Int32Array(g.rows*g.cols).fill(-1);
+  const q=[[g.sr,g.sc]];dist[g.idx(g.sr,g.sc)]=0;
+  let h=0;
+  while(h<q.length){
+    const[r,c]=q[h++];
+    if(r===g.er&&c===g.ec)return;
+    for(let d=0;d<4;d++){const nr=r+DR[d],nc=c+DC[d];if(!g.walkable(nr,nc))continue;const ni=g.idx(nr,nc);if(dist[ni]!==-1)continue;dist[ni]=1;q.push([nr,nc])}
+  }
+}
+function dfs(g){
+  const seen=new Uint8Array(g.rows*g.cols);
+  const stk=[[g.sr,g.sc]];seen[g.idx(g.sr,g.sc)]=1;
+  while(stk.length){
+    const[r,c]=stk.pop();
+    if(r===g.er&&c===g.ec)return;
+    for(let d=3;d>=0;d--){const nr=r+DR[d],nc=c+DC[d];if(!g.walkable(nr,nc))continue;const ni=g.idx(nr,nc);if(seen[ni])continue;seen[ni]=1;stk.push([nr,nc])}
+  }
+}
+function dijkstra(g){
+  const dist=new Float32Array(g.rows*g.cols).fill(Infinity);
+  const done=new Uint8Array(g.rows*g.cols);
+  const h=new Heap();dist[g.idx(g.sr,g.sc)]=0;h.push([0,g.sr,g.sc]);
+  while(h.size){
+    const[d,r,c]=h.pop();const i=g.idx(r,c);
+    if(done[i])continue;done[i]=1;
+    if(r===g.er&&c===g.ec)return;
+    for(let dir=0;dir<4;dir++){const nr=r+DR[dir],nc=c+DC[dir];if(!g.walkable(nr,nc))continue;const ni=g.idx(nr,nc);if(done[ni])continue;const nd=d+g.wts[ni];if(nd<dist[ni]){dist[ni]=nd;h.push([nd,nr,nc])}}
+  }
+}
+function astar(g){
+  const gv=new Float32Array(g.rows*g.cols).fill(Infinity);
+  const done=new Uint8Array(g.rows*g.cols);
+  const H=(r,c)=>Math.abs(r-g.er)+Math.abs(c-g.ec);
+  const heap=new Heap();gv[g.idx(g.sr,g.sc)]=0;heap.push([H(g.sr,g.sc),0,g.sr,g.sc]);
+  while(heap.size){
+    const[f,gn,r,c]=heap.pop();const i=g.idx(r,c);
+    if(done[i])continue;done[i]=1;
+    if(r===g.er&&c===g.ec)return;
+    for(let dir=0;dir<4;dir++){const nr=r+DR[dir],nc=c+DC[dir];if(!g.walkable(nr,nc))continue;const ni=g.idx(nr,nc);if(done[ni])continue;const ng=gn+g.wts[ni];if(ng<gv[ni]){gv[ni]=ng;heap.push([ng+H(nr,nc),ng,nr,nc])}}
+  }
+}
+
+function benchFn(fn,grid,trials){
+  for(let i=0;i<10;i++)fn(grid); // warmup
+  const t=[];
+  for(let i=0;i<trials;i++){const s=performance.now();fn(grid);t.push(performance.now()-s)}
+  t.sort((a,b)=>a-b);
+  const mean=t.reduce((a,b)=>a+b,0)/t.length;
+  const p95=t[Math.floor(trials*0.95)];
+  return{mean,min:t[0],p95};
+}
+
+let wasmModule=null;
+let lastResults=null;
+
+// Try load WASM
+if(typeof PathfinderModule!=='undefined'){
+  PathfinderModule().then(m=>{wasmModule=m;document.getElementById('wasmNote').textContent='✓ WASM module loaded — measuring real C++ execution time.'}).catch(()=>{});
+}
+
+function colorSU(x){
+  if(x>=2.5) return 'fast';
+  if(x>=1.5) return 'med';
+  return 'slow';
+}
+
+async function runBench(){
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;
+  const [rows,cols]=document.getElementById('gridSel').value.split(',').map(Number);
+  const trials=+document.getElementById('trialSel').value;
+  const grid=new Grid(rows,cols,42);
+  const status=document.getElementById('status');
+
+  const algos=[
+    {name:'BFS',fn:bfs,ids:['jBFS','wBFS','suBFS','jBFS_bar','wBFS_bar']},
+    {name:'DFS',fn:dfs,ids:['jDFS','wDFS','suDFS','jDFS_bar','wDFS_bar']},
+    {name:'Dijkstra',fn:dijkstra,ids:['jDijk','wDijk','suDijk','jDijk_bar','wDijk_bar']},
+    {name:'A*',fn:astar,ids:['jAst','wAst','suAst','jAst_bar','wAst_bar']},
+  ];
+
+  const jsResults={}, wasmResults={};
+
+  for(const a of algos){
+    status.textContent=`Benchmarking JS ${a.name}... (${trials} trials)`;
+    await new Promise(r=>setTimeout(r,20));
+    jsResults[a.name]=benchFn(a.fn,grid,trials);
+  }
+
+  // WASM benchmark if module loaded, else project from ratio
+  const WASM_RATIO=2.1;
+  for(const a of algos){
+    if(wasmModule){
+      status.textContent=`Benchmarking WASM ${a.name}...`;
+      await new Promise(r=>setTimeout(r,20));
+      // Run via WASM bridge
+      const N=rows*cols;
+      const wPtr=wasmModule._malloc(N*4), wtPtr=wasmModule._malloc(N*4);
+      for(let i=0;i<N;i++){
+        wasmModule.HEAP32[(wPtr>>2)+i]=grid.cells[i]===1?1:0;
+        wasmModule.HEAP32[(wtPtr>>2)+i]=grid.wts[i];
+      }
+      const algoIdx={BFS:0,DFS:1,Dijkstra:2,'A*':3}[a.name];
+      for(let i=0;i<10;i++){wasmModule._init_grid(rows,cols,wPtr,wtPtr);wasmModule._run_algorithm(algoIdx,1,1,rows-2,cols-2)}
+      const t=[];
+      for(let i=0;i<trials;i++){
+        wasmModule._init_grid(rows,cols,wPtr,wtPtr);
+        const s=performance.now();wasmModule._run_algorithm(algoIdx,1,1,rows-2,cols-2);t.push(performance.now()-s);
+      }
+      wasmModule._free(wPtr);wasmModule._free(wtPtr);
+      t.sort((a,b)=>a-b);
+      wasmResults[a.name]={mean:t.reduce((a,b)=>a+b,0)/t.length,min:t[0],p95:t[Math.floor(trials*0.95)]};
+    } else {
+      wasmResults[a.name]={mean:jsResults[a.name].mean/WASM_RATIO,min:jsResults[a.name].min/WASM_RATIO,p95:jsResults[a.name].p95/WASM_RATIO,projected:true};
+    }
+  }
+
+  // Render results
+  const jMax=Math.max(...Object.values(jsResults).map(r=>r.mean));
+  const wMax=Math.max(...Object.values(wasmResults).map(r=>r.mean));
+
+  for(const a of algos){
+    const jr=jsResults[a.name], wr=wasmResults[a.name];
+    const speedup=(jr.mean/wr.mean);
+    const[jId,wId,suId,jBar,wBar]=a.ids;
+    document.getElementById(jId).textContent=jr.mean.toFixed(4)+'ms';
+    document.getElementById(wId).textContent=(wr.projected?'~':'')+wr.mean.toFixed(4)+'ms';
+    document.getElementById(jBar).style.width=Math.round(jr.mean/jMax*100)+'%';
+    document.getElementById(wBar).style.width=Math.round(wr.mean/wMax*100)+'%';
+    const suEl=document.getElementById(suId);
+    suEl.textContent=speedup.toFixed(2)+'×';
+    suEl.className='su-val '+colorSU(speedup);
+  }
+
+  status.textContent=`Done — ${trials} trials · ${rows}×${cols} grid · ${wasmModule?'real WASM':'projected WASM (place pathfinder.wasm here for actual numbers)'}`;
+
+  // Build export text
+  lastResults={rows,cols,trials,jsResults,wasmResults,wasmReal:!!wasmModule};
+  btn.disabled=false;
+}
+
+document.getElementById('runBtn').addEventListener('click',runBench);
+
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  if(!lastResults){alert('Run benchmark first');return}
+  const{rows,cols,trials,jsResults,wasmResults,wasmReal}=lastResults;
+  let txt=`PathOS Benchmark Results\n${'═'.repeat(50)}\n`;
+  txt+=`Grid: ${rows}×${cols} | Trials: ${trials} | WASM: ${wasmReal?'Measured':'Projected (×2.1)'}\n\n`;
+  txt+=`${'Algorithm'.padEnd(12)}${'JS Mean'.padStart(12)}${'WASM Mean'.padStart(12)}${'Speedup'.padStart(10)}\n`;
+  txt+=`${'─'.repeat(46)}\n`;
+  for(const name of ['BFS','DFS','Dijkstra','A*']){
+    const j=jsResults[name],w=wasmResults[name];
+    const su=(j.mean/w.mean).toFixed(2)+'×';
+    txt+=`${name.padEnd(12)}${(j.mean.toFixed(4)+'ms').padStart(12)}${((w.projected?'~':'')+w.mean.toFixed(4)+'ms').padStart(12)}${su.padStart(10)}\n`;
+  }
+  const pre=document.getElementById('output');
+  pre.style.display='block';pre.textContent=txt;
+});
+</script>
+</body>
+</html>

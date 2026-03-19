@@ -318,4 +318,3 @@ MIT License — free to use, modify, and distribute.
 [🚀 Try it live](https://mayurs23.github.io/pathfinding-visualizer/) · [📊 Run Benchmark](https://mayurs23.github.io/pathfinding-visualizer/benchmark.html)
 
 </div>
-<div align="center"> Built with ❤️ by <a href="https://github.com/MayurS23">MayurS23</a> </div>
